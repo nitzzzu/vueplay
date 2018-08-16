@@ -1,7 +1,3 @@
-// https://stackoverflow.com/questions/50927481/scroll-with-arrow-keys-on-dropdown-vuejs
-// https://github.com/paliari/v-autocomplete/blob/master/src/Autocomplete.vue
-// https://github.com/krilor/vue-suggest
-
 <template>
     <div class="autocomplete">
         <input 
