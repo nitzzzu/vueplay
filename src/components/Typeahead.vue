@@ -1,17 +1,19 @@
 // https://stackoverflow.com/questions/50927481/scroll-with-arrow-keys-on-dropdown-vuejs
 // https://github.com/paliari/v-autocomplete/blob/master/src/Autocomplete.vue
+// https://github.com/krilor/vue-suggest
 
 <template>
     <div class="autocomplete">
         <input 
             v-model="query"
-            @input="onChange" 
+            @input="inputChange" 
             type="text" 
             :placeholder="placeholder"
              @keyup.down="keyDown" @keyup.up="keyUp" @keyup.enter="keyEnter"
         >
-        <ul class="autocomplete-results" v-show="isOpen">
-            <li v-for="(result, i) in results" :key="result.id" @click="setResult(result)" class="autocomplete-result" :class="{ 'is-active': i === cursor }" v-html="highlight(result.value)">
+        <ul class="autocomplete-options" v-show="isOpen">
+            <li v-for="(option, i) in options" :key="option.id" @click="selectOption(option)" class="autocomplete-option" :class="{ 'is-active': i === cursor }">
+                <slot name="item" :data="option"><span v-html="defaultValue(option)"></span></slot>
             </li>
         </ul>
     </div>
@@ -32,7 +34,7 @@ export default {
     },
     data() {
         return {
-            results: [],
+            options: [],
             query: '',
             isOpen: false,
             cursor: 0
@@ -42,13 +44,26 @@ export default {
         this.debouncedLookup = _.debounce(this.lookup, this.wait);
     },
     methods: {
-        async onChange() {
+        defaultValue(option) {
+            if (typeof option === 'string') {
+                return option;
+            } else if (typeof option === 'object') {
+                if (option.value) {
+                    return this.highlight(option.value);
+                } else {
+                    return String(option[Object.keys(option)[0]]);
+                }
+            } else {
+                return '';
+            }
+        },
+        async inputChange() {
             let q = this.query.trim();
             if (q.length >= this.minLen) {
                 await this.debouncedLookup();
             } else {
                 if (this.isOpen) {
-                    this.closeResults();
+                    this.closeOptions();
                 }
             }
         },
@@ -60,12 +75,12 @@ export default {
             let q = this.query.trim();
             if (q.length >= this.minLen) {
                 this.cursor = -1;
-                this.results = this.extractResults(response.data);
-                this.isOpen = this.results.length > 0;
+                this.options = this.extractOptions(response.data);
+                this.isOpen = this.options.length > 0;
             }
         },
-        extractResults(results) {
-            let res = results.replace('suggestCallBack(', '');
+        extractOptions(options) {
+            let res = options.replace('suggestCallBack(', '');
             res = res.substring(0, res.length - 1);
             let o = JSON.parse(res)[1];
 
@@ -75,32 +90,32 @@ export default {
                 suggestions.push({ value: x[0] });
             }
             return suggestions;
-            //return _.map(results, x => ({ id: x.id, value: x[this.labelField] }));
+            //return _.map(options, x => ({ id: x.id, value: x[this.labelField] }));
         },
-        setResult(result) {
-            this.$emit('selected', result.value);
-            if (this.query != result.value) {
-                this.query = result.value;
+        selectOption(option) {
+            this.$emit('selected', option.value);
+            if (this.query != option.value) {
+                this.query = option.value;
             }
-            this.closeResults();
+            this.closeOptions();
         },
-        closeResults() {
+        closeOptions() {
             this.isOpen = false;
             this.cursor = -1;
-            this.results = [];
+            this.options = [];
         },
         keyDown(ev) {
             ev.preventDefault();
-            if (this.cursor < this.results.length - 1) {
+            if (this.cursor < this.options.length - 1) {
                 this.cursor++;
-                this.itemView(this.$el.getElementsByClassName('autocomplete-result')[this.cursor]);
+                this.itemView(this.$el.getElementsByClassName('autocomplete-option')[this.cursor]);
             }
         },
         keyUp(ev) {
             ev.preventDefault();
             if (this.cursor > 0) {
                 this.cursor--;
-                this.itemView(this.$el.getElementsByClassName('autocomplete-result')[this.cursor]);
+                this.itemView(this.$el.getElementsByClassName('autocomplete-option')[this.cursor]);
             }
         },
         itemView(item) {
@@ -109,15 +124,15 @@ export default {
             }
         },
         keyEnter() {
-            if (this.cursor >= 0 && this.results[this.cursor]) {
-                this.setResult(this.results[this.cursor]);
+            if (this.cursor >= 0 && this.options[this.cursor]) {
+                this.selectOption(this.options[this.cursor]);
             } else {
-                this.setResult({ value: this.query });
+                this.selectOption({ value: this.query });
             }
         },
         handleClickOutside(evt) {
             if (!this.$el.contains(evt.target)) {
-                this.closeResults();
+                this.closeOptions();
             }
         },
         highlight(text) {
@@ -139,7 +154,7 @@ export default {
     width: 400px;
 }
 
-.autocomplete-results {
+.autocomplete-options {
     padding: 0;
     margin: 0;
     border: 1px solid #eeeeee;
@@ -150,17 +165,17 @@ export default {
     background-color: #ffffff;
 }
 
-.autocomplete-result {
+.autocomplete-option {
     list-style: none;
     text-align: left;
-    padding: 2px 2px;
+    padding: 2px 6px;
     cursor: pointer;
     font-weight: bold;
     color: #222;
 }
 
-.autocomplete-result.is-active,
-.autocomplete-result:hover {
+.autocomplete-option.is-active,
+.autocomplete-option:hover {
     background-color: #f0f0f0;
 }
 </style>
