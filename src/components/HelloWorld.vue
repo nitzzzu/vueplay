@@ -2,11 +2,14 @@
   <div class="hello">
     <div  class="columns medium-4">
     <typeahead
-                source="https://clients1.google.com/complete/search?hl=en&client=youtube&ds=yt&jsonp=suggestCallBack&q="
-                placeholder="Type something here..."
-                :minLen="3"
-                labelField="title"
-                @selected="resultSelected">
+            source="https://clients1.google.com/complete/search?hl=en&client=youtube&ds=yt&jsonp=suggestCallBack&q="
+            placeholder="Type something here..."
+            :minLen="3"
+            labelField="title"
+            @selected="optionSelected">
+            <template slot="item" slot-scope="option">
+                <strong>{{ option.data.value }}</strong>
+            </template>
     </typeahead>
     {{query}}
     </div>
@@ -63,7 +66,7 @@ export default {
         });
     },
     methods: {
-        resultSelected(result) {
+        optionSelected(result) {
             this.query = result;
         }
     }
